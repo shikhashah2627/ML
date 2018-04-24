@@ -1,0 +1,46 @@
+import pandas as pd
+import numpy as np
+import gzip
+
+f = gzip.open('train-images.gz', 'rb')
+train_images = np.frombuffer(f.read(), np.uint8, offset=16)
+train_images = train_images.reshape(-1, 1, 28, 28)
+train_images = train_images.reshape(train_images.shape[0],784)
+
+f = gzip.open('train-labels.gz','rb')
+train_labels = np.frombuffer(f.read(), np.uint8, offset=8)
+train_labels = train_labels.reshape(60000,1)
+
+y_predicted = np.array(train_labels.reshape(1,60000))
+
+train_label_final = np.zeros((60000,10))
+
+
+for row in range(len(train_label_final)):
+    index = train_labels[row].astype(int)
+    train_label_final[row][index-1] += 1
+
+train_label_final.astype(int)
+
+# scalingfor 0-1 and adding bias column to the input
+train_images_matrix = np.copy(train_images)
+train_images_matrix[:,:] /= 255
+bias_col = np.ones((60000,1))
+train_images_matrix = np.append(train_images_matrix,bias_col,axis = 1)
+
+#initializing confusion_matrix
+confusion_matrix = np.zeros((10,10))
+
+y_actual = np.zeros((60000,1))
+#creating weights matrix
+weights = np.random.uniform(-0.05, 0.05, (785,10)).round(2)
+for i in range(70):
+    for row in range(len(train_images_matrix)):
+        y = np.dot(train_images_matrix[row,:],weights).reshape(1,10)
+        y_final = (y == y.max(axis=1, keepdims=1)).astype(int)
+        sub_matrix = train_label_final[row] - y_final
+
+        if (sub_matrix.any(axis=1)):
+            weights = weights.transpose()
+            weights += 0.001 * sub_matrix.reshape(10,1) * train_images_matrix[row]
+            weights = weights.transpose()
